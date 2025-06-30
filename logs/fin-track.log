@@ -1,0 +1,15 @@
+[2025-06-24 11:50:00,527] INFO in service.create_category: Created budget category None for user a3c47a68-9db9-42f5-8a30-16c2d343ddf9
+[2025-06-24 11:54:30,644] INFO in service.create_category: Created budget category None for user a3c47a68-9db9-42f5-8a30-16c2d343ddf9
+[2025-06-24 11:59:25,166] ERROR in service.create_category: Database error: (asyncmy.errors.IntegrityError) (1452, 'Cannot add or update a child row: a foreign key constraint fails (`fintrack`.`budget_categories`, CONSTRAINT `budget_categories_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`))')
+[SQL: INSERT INTO budget_categories (id, user_id, name, budget_limit, type, description, created_at, updated_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)]
+[parameters: (b'\xc3|\xe0\xcb\x00QC\x89\xb9\xd5n\x12_\x1c\x8d\xd3', b'\xa3\xc4zh\x9d\xb9B\xf5\x8a0\x16\xc2\xd3C\xdd\xf9', 'Groceries', Decimal('500'), 'INCOME', 'Monthly grocery budget', datetime.datetime(2025, 6, 24, 8, 59, 25, 164585), datetime.datetime(2025, 6, 24, 8, 59, 25, 164589))]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2025-06-24 12:01:57,239] INFO in service.create_category: Created budget category b'\xbe\x92!<\x8c\xaeF#\x8b?\x82mC\xa9\xa2:' for user 08133511-671d-4165-a2fd-a896b5c81fd3
+[2025-06-24 12:02:55,746] INFO in service.create_category: Created budget category b'\xfa,0\x1a\x02\x8bF,\x85&\x96C\xe6\xa9 \xd6' for user 3d7d9ed3-f621-4ff5-9edb-5d032ac18683
+[2025-06-24 17:02:30,033] ERROR in service.create_expense: Expense creation failed: No module named 'app.models'
+[2025-06-24 17:16:17,085] ERROR in service.create_expense: Expense creation failed: 404: Specified category does not exist
+[2025-06-24 17:52:21,982] ERROR in service.create_expense: Expense creation failed: 404: Specified category does not exist
+[2025-06-24 17:53:45,708] INFO in service.create_expense: Created expense e7c1441c-4648-43e8-bef1-d2150a6e6a98 for user 08133511-671d-4165-a2fd-a896b5c81fd3
+[2025-06-25 10:55:46,009] ERROR in service.get_all_expenses: Failed to fetch expenses: 404: No expenses found for this user
+[2025-06-25 10:56:06,962] INFO in service.get_all_expenses: Retrieved 1 expenses for user 08133511-671d-4165-a2fd-a896b5c81fd3
+[2025-06-25 10:56:26,475] INFO in service.get_all_expenses: Retrieved 1 expenses for user 08133511-671d-4165-a2fd-a896b5c81fd3
