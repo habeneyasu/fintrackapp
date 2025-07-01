@@ -1,5 +1,7 @@
 from uuid import UUID
 from decimal import Decimal
+import uuid
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.features.expense.models import Expense
@@ -116,3 +118,51 @@ class ExpenseService:
         except Exception as e:
             logger.error(f"Failed to fetch expenses: {str(e)}")
             raise
+    
+     
+
+    @staticmethod
+    async def get_expenses_by_user(
+        user_id: str,
+        db: AsyncSession,
+        skip: int = 0,
+        limit: int = 100
+    ) -> list[ExpenseResponse]:
+        try:
+            # Normalize the UUID first
+            if not user_id:
+                raise HTTPException(status_code=422, detail="User ID cannot be empty")
+                
+            # Remove 0x prefix if exists
+            clean_uuid = user_id[2:] if user_id.startswith('0x') else user_id
+            clean_uuid = clean_uuid.replace('-', '').lower()
+            
+            # Validate length
+            if len(clean_uuid) != 32:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Invalid UUID length after cleaning: {clean_uuid}"
+                )
+            
+            # Convert to binary
+            uuid_bytes = uuid.UUID(hex=clean_uuid).bytes
+            
+            # Query database
+            result = await db.execute(
+                select(Expense)
+                .where(Expense.user_id == uuid_bytes)
+                .offset(skip)
+                .limit(limit)
+            )
+            return [ExpenseResponse.model_validate(i) for i in result.scalars()]
+            
+        except ValueError as e:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Invalid UUID format: {str(e)}"
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Database error: {str(e)}"
+            )

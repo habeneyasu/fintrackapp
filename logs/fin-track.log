@@ -13,3 +13,5 @@
 [2025-06-25 10:55:46,009] ERROR in service.get_all_expenses: Failed to fetch expenses: 404: No expenses found for this user
 [2025-06-25 10:56:06,962] INFO in service.get_all_expenses: Retrieved 1 expenses for user 08133511-671d-4165-a2fd-a896b5c81fd3
 [2025-06-25 10:56:26,475] INFO in service.get_all_expenses: Retrieved 1 expenses for user 08133511-671d-4165-a2fd-a896b5c81fd3
+[2025-07-01 14:06:08,040] INFO in service.create_category: Created budget category b'\xee\x12\x15\x9ay\xe9O\xae\xb9\xe5\xdb,w\x02\x88\xe9' for user 3d7d9ed3-f621-4ff5-9edb-5d032ac18683
+[2025-07-01 14:07:11,949] INFO in service.create_expense: Created expense 1f38a56d-17a9-4b60-b612-a9c057810239 for user 3d7d9ed3-f621-4ff5-9edb-5d032ac18683

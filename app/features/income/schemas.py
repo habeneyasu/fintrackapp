@@ -1,6 +1,8 @@
 from datetime import datetime
 from decimal import Decimal
-from uuid import UUID  # Correct import from standard library
+import re
+from uuid import UUID as uuid_uuid
+import uuid  # Correct import from standard library
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from app.core.config import IncomeSource, IncomeFrequency
@@ -17,9 +19,28 @@ class IncomeCreate(IncomeBase):
     @field_validator('user_id')
     def validate_uuid(cls, v):
         try:
-            return str(UUID(v))  # Validate UUID format
-        except ValueError:
-            raise ValueError("Invalid UUID format")
+            # Remove all non-hex characters (including '0x' prefix and hyphens)
+            clean = re.sub(r'[^0-9a-fA-F]', '', v)
+            
+            # Check length after cleaning
+            if len(clean) != 32:
+                raise ValueError(f"Expected 32 hex chars, got {len(clean)} after cleaning")
+                
+            # Convert to UUID object to validate
+            # This is the most reliable validation
+            uuid_obj = uuid.UUID(hex=clean)
+            
+            # Return the original input to preserve formatting
+            return v
+            
+        except ValueError as e:
+            raise ValueError(
+                "Invalid UUID format. Valid examples:\n"
+                "- 3d7d9ed3-f621-4ff5-9edb-5d032ac18683\n"
+                "- 0x3D7D9ED3F6214FF59EDB5D032AC18683\n"
+                "- 3D7D9ED3F6214FF59EDB5D032AC18683\n"
+                f"Validation error: {str(e)}"
+            )
     
     class Config:
         json_encoders = {
@@ -47,7 +68,7 @@ class IncomeResponse(BaseModel):
     def convert_binary_to_uuid(cls, v):
         if isinstance(v, bytes):
             try:
-                return str(UUID(bytes=v))  # Now using correct UUID class
+                return str(uuid_uuid(bytes=v))  # Now using correct UUID class
             except ValueError:
                 return v.hex()
         return v

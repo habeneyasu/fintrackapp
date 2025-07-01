@@ -1,8 +1,11 @@
 
 from ast import Index
+import re
+from uuid import UUID as uuid_uuid
 import uuid
 from datetime import datetime
 from decimal import Decimal
+from fastapi import HTTPException
 from sqlalchemy import Column, DateTime, Boolean, Text, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.dialects.mysql import BINARY
@@ -28,9 +31,25 @@ class Income(Base):
         return str(uuid.UUID(bytes=self.id)) if self.id else None
 
     @staticmethod
-    def uuid_to_bin(uuid_str: str):
-        """Convert UUID string to binary for MySQL"""
-        return uuid.UUID(uuid_str).bytes if uuid_str else None
+    def uuid_to_bin(uuid_str: str) -> bytes:
+        """Convert any valid UUID string to binary"""
+        try:
+            # First try standard UUID parsing
+            if '-' in uuid_str:
+                return uuid.UUID(uuid_str).bytes
+                
+            # Handle hex strings (with or without 0x prefix)
+            clean = uuid_str.lower().replace('0x', '')
+            if len(clean) == 32:
+                return uuid.UUID(hex=clean).bytes
+                
+            raise ValueError("Invalid UUID format")
+            
+        except ValueError as e:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Invalid UUID: {str(e)}. Must be 32-character hex."
+            )
 
     @staticmethod
     def prepare_for_db(data: dict) -> dict:

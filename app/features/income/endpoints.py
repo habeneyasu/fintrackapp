@@ -1,3 +1,4 @@
+import re
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,12 +18,18 @@ income_router = APIRouter(
 async def create_income(
     income: IncomeCreate, 
     db: AsyncSession = Depends(get_db)
-):
+    ):
     service = IncomeService(db)
     try:
         return await service.create_income(income)
-    except ValueError as e:
+    except HTTPException as he:
+        raise he
+    except ValueError as ve:
+        raise HTTPException(status_code=422, detail=str(ve))
+    except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
+    
 
 @income_router.get("/getIncomeById/{income_id}", response_model=IncomeResponse)
 async def read_income(income_id: str, db: AsyncSession = Depends(get_db)):
@@ -70,3 +77,18 @@ async def delete_income(income_id: str, db: AsyncSession = Depends(get_db)):
     if not success:
         raise HTTPException(status_code=404, detail="Income not found")
     return None
+
+@income_router.get("/getIncomesByUserId", response_model=list[IncomeResponse])
+async def read_incomes(
+    user_id: str = Query(..., example="0x3D7D9ED3F6214FF59EDB5D032AC18683"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, le=1000),
+    db: AsyncSession = Depends(get_db)
+      ):
+    """
+    Get incomes by user ID - accepts:
+    - 0x-prefixed: 0x3D7D9ED3F6214FF59EDB5D032AC18683
+    - Standard UUID: 3D7D9ED3-F621-4FF5-9EDB-5D032AC18683
+    - Raw hex: 3D7D9ED3F6214FF59EDB5D032AC18683
+    """
+    return await IncomeService.get_incomes_by_user(user_id, db, skip, limit)
