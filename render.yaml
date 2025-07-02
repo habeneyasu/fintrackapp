@@ -3,27 +3,27 @@ services:
     name: fin-track-api
     runtime: docker
     env: docker
+    plan: free # or paid if needed
     build:
       context: .
       dockerfile: Dockerfile
     envVars:
-      - key: DB_ENGINE
-        value: mysql
+      - key: DB_HOST
+        valueFrom: db_host
       - key: DB_USER
         value: root
       - key: DB_PASSWORD
-        valueFrom: db_password  # Create this secret in Render
-      - key: DB_HOST
-        valueFrom: db_host  # Your Render MySQL host
-      - key: DB_PORT
-        value: "3306"
+        valueFrom: db_password
       - key: DB_NAME
         value: fintrack
-      # ... other environment variables ...
+      - key: DB_PORT
+        value: "3306"
+    healthCheckPath: /health
+    autoDeploy: true
 
   - type: mysql
     name: fin-track-db
-    plan: free  # Or paid plan for production
+    plan: free
     databaseName: fintrack
     user: root
-    password: test@123  # Change to stronger password for production
+    password: test@123 # Change to a stronger password!
