@@ -1,0 +1,33 @@
+
+services:
+  db:
+    image: mysql:8
+    restart: always
+    environment:
+      MYSQL_DATABASE: fintrack
+      MYSQL_ROOT_PASSWORD: test@123
+    ports:
+      - "3306:3306"  # Only for local development
+    volumes:
+      - mysql_data:/var/lib/mysql
+    # Add healthcheck for better dependency management
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+
+  web:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env.docker  # ← Use the Docker-specific env file
+    ports:
+      - "8000:8000"
+    # Remove --reload in production
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+volumes:
+  mysql_data:

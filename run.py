@@ -4,7 +4,7 @@ from app.core.config import settings
 
 if __name__ == "__main__":
     uvicorn.run(
-        "main:app", 
+        "app.main:app", 
         host=settings.DB_HOST,  # e.g. "0.0.0.0"
         port=8000,  # e.g. 8000
         reload=True,   # Auto-reload in development
