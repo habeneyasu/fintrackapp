@@ -59,7 +59,7 @@ Local Setup
 3. Run migrations:
     alembic upgrade head
 4.Start the server:
-    uvicorn main:app --reload
+    uvicorn main:app --reload 
 
 Docker Setup:
     docker-compose up --build
