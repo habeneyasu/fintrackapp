@@ -1,3 +1,4 @@
+version: '3.8'
 
 services:
   db:
@@ -5,29 +6,52 @@ services:
     restart: always
     environment:
       MYSQL_DATABASE: fintrack
-      MYSQL_ROOT_PASSWORD: test@123
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-test@123}  # ← Env variable with default
+      MYSQL_USER: ${DB_USER:-fintrack_user}              # ← Custom user (optional)
+      MYSQL_PASSWORD: ${DB_PASSWORD:-fintrack_pass}       # ← Separate user password
     ports:
-      - "3306:3306"  # Only for local development
+      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-    # Add healthcheck for better dependency management
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql  # ← Optional DB initialization
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
       timeout: 10s
       retries: 5
+    networks:
+      - fintrack-net
 
   web:
-    build: .
+    build:
+      context: .
+      target: builder  # ← Multi-stage build target (see Dockerfile update below)
     depends_on:
       db:
         condition: service_healthy
     env_file:
-      - .env.docker  # ← Use the Docker-specific env file
+      - .env.docker
+    environment:
+      - DB_HOST=db  # ← Explicitly set in compose (overrides .env if needed)
     ports:
       - "8000:8000"
-    # Remove --reload in production
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - ./app:/app/app  # ← Live reload for development
+      - ./logs:/app/logs
+    command: >
+      bash -c "alembic upgrade head && 
+      gunicorn -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000 app.main:app"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - fintrack-net
 
 volumes:
   mysql_data:
+
+networks:
+  fintrack-net:  # ← Isolated network for better security
+    driver: bridge 
