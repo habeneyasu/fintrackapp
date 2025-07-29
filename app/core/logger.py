@@ -18,7 +18,7 @@ def setup_logger(name: str = "fin-track-api"):
     logger.handlers.clear()
 
     # Formatting
-    if settings.ENV == "prod":
+    if settings.ENVIRONMENT == "production":
         formatter = logging.Formatter(
             '{"time": "%(asctime)s", "level": "%(levelname)s", "module": "%(module)s", '
             '"function": "%(funcName)s", "message": "%(message)s"}'

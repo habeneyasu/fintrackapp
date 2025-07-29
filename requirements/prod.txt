@@ -1,4 +1,4 @@
-alembic==1.13.1
+alembic>=1.7.0
 annotated-types==0.7.0
 anyio==4.9.0
 asyncmy==0.2.10
@@ -34,3 +34,6 @@ starlette==0.35.1
 typing-inspection==0.4.1
 typing_extensions==4.14.0
 uvicorn==0.27.0
+pymysql>=1.1.0
+gunicorn
+
