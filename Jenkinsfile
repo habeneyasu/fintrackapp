@@ -11,17 +11,23 @@ pipeline {
     }
 
     stages {
-        // The 'Clone Repo' stage is REMOVED.
-        // Jenkins automatically checks out the source code at the start of the pipeline.
-        // Your code will be available in the workspace: /var/jenkins_home/workspace/fintrack-api-pipeline/
-
         stage('Build Docker Image') {
             steps {
                 script {
+                    // --- Diagnostic Steps (KEEP THESE!) ---
+                    echo "Checking for Docker executable path..."
+                    sh 'which docker || echo "docker not found in PATH, trying /usr/bin/docker"' // Check if docker is found
+                    sh '/usr/bin/docker info || echo "Could not get docker info from /usr/bin/docker"' // Use absolute path for info
+
+                    // Set PATH for current shell to include /usr/bin
+                    // Alternatively, you can use the full path '/usr/bin/docker' in each command below.
+                    sh 'export PATH="/usr/bin:$PATH"' 
+                    echo "PATH updated for current shell."
+
+                    // --- End Diagnostic Steps ---
+
                     echo "Building Docker image: ${DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER}"
-                    // Build with BUILD_NUMBER tag
-                    sh "docker build -t ${DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER} ."
-                    // Also tag with 'latest' for convenience
+                    sh "docker build -t ${DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER} ." // Now 'docker' should work
                     sh "docker tag ${DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER} ${DOCKER_IMAGE_NAME}:latest"
                 }
             }
@@ -29,21 +35,21 @@ pipeline {
 
         stage('Run Integration Tests') {
             steps {
+                // Ensure docker-compose is also accessible if it's installed via apt
+                sh 'export PATH="/usr/bin:$PATH"'
                 echo "Spinning up test environment with docker-compose.test.yml..."
-                // Use docker-compose.test.yml for testing environment
                 sh 'docker-compose -f docker-compose.test.yml up -d --build --force-recreate'
 
-                // Important: Wait for services (especially the database) to be healthy
                 echo "Waiting 30 seconds for services to become healthy..."
-                sh 'sleep 30' // Adjust this sleep duration as needed
+                sh 'sleep 30'
 
                 echo "Running pytest tests..."
-                sh 'pytest tests/' // Make sure 'pytest tests/' runs your tests correctly
+                sh 'pytest tests/'
             }
             post {
                 always {
                     echo "Tearing down test environment..."
-                    sh 'docker-compose -f docker-compose.test.yml down' // Clean up containers after tests
+                    sh 'docker-compose -f docker-compose.test.yml down'
                 }
             }
         }
@@ -51,20 +57,16 @@ pipeline {
         stage('Deploy Application (Local Jenkins Host)') {
             steps {
                 script {
+                    sh 'export PATH="/usr/bin:$PATH"'
                     echo "Stopping and removing existing container (if any)..."
-                    // Stop and remove old container
-                    sh 'docker stop fintrack-api || true' // '|| true' prevents pipeline failure if container doesn't exist
+                    sh 'docker stop fintrack-api || true'
                     sh 'docker rm fintrack-api || true'
 
                     echo "Running new application container: ${DOCKER_IMAGE_NAME}:latest"
-                    // Run the new container from the 'latest' tagged image
-                    // Corrected variable name from Docker_IMAGE_NAME to DOCKER_IMAGE_NAME
                     sh "docker run -d -p 8000:8000 --name fintrack-api ${DOCKER_IMAGE_NAME}:latest"
                     echo "Application should now be running on port 8000 of the Jenkins host."
                 }
             }
         }
-        // No 'Push Docker Image' stage as per your current setup.
-        // No Kubernetes deployment yet.
     }
 }
