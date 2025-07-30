@@ -6,8 +6,8 @@ pipeline {
     environment {
         // --- Docker Image Configuration ---
         DOCKER_IMAGE_NAME = "habeneyasu/fintrackapp" // Your Docker image name/repository
-        # This will be replaced from the job 
-        # TAG = "latest" // You can use a fixed tag or dynamic like BUILD_NUMBER
+        // This will be replaced from the job
+        // TAG = "latest" // You can use a fixed tag or dynamic like BUILD_NUMBER
     }
 
     stages {
@@ -58,7 +58,8 @@ pipeline {
 
                     echo "Running new application container: ${DOCKER_IMAGE_NAME}:latest"
                     // Run the new container from the 'latest' tagged image
-                    sh "docker run -d -p 8000:8000 --name fintrack-api ${Docker_IMAGE_NAME}:latest"
+                    // Corrected variable name from Docker_IMAGE_NAME to DOCKER_IMAGE_NAME
+                    sh "docker run -d -p 8000:8000 --name fintrack-api ${DOCKER_IMAGE_NAME}:latest"
                     echo "Application should now be running on port 8000 of the Jenkins host."
                 }
             }
