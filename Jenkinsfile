@@ -2,14 +2,14 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "habeneyasu/fintrackapp.git"
+        IMAGE_NAME = "habeneyasu/fintrackapp"
         TAG = "latest"
     }
 
     stages {
         stage('Clone Repo') {
             steps {
-                git 'https://github.com/habeneyasu/fintrackapp.git'
+                git branch: 'main', url: 'https://github.com/habeneyasu/fintrackapp.git'
             }
         }
 
