@@ -2,81 +2,36 @@ pipeline {
     agent any
 
     environment {
-        // Docker configuration
-        DOCKER_IMAGE_NAME = 'fin-track-api'
-        COMPOSE_PROJECT_NAME = "fintrack_${BUILD_NUMBER}"
-        
-        // Use environment variables matching your docker.env
-        DB_HOST = 'db'
-        DB_PORT = '3306'
-        DB_NAME = 'fintrack_docker'
-        DB_USER = 'fintrack_user'
-        DB_PASSWORD = 'userpass' // Directly using from your docker.env
-        DB_ROOT_PASSWORD = 'rootpass' // As defined in your compose file
+        IMAGE_NAME = "habeneyasu/fintrackapp.git"
+        TAG = "latest"
     }
 
     stages {
-        stage('Prepare Environment') {
+        stage('Clone Repo') {
+            steps {
+                git 'https://github.com/habeneyasu/fintrackapp.git'
+            }
+        }
+
+        stage('Build Docker Image') {
             steps {
                 script {
-                    // Verify Docker is available
-                    sh 'docker --version'
-                    
-                    // Create docker.env file dynamically
-                    sh '''
-                    cat > ./configs/environments/docker.env <<EOF
-                    DB_HOST=${DB_HOST}
-                    DB_PORT=${DB_PORT}
-                    DB_NAME=${DB_NAME}
-                    DB_USER=${DB_USER}
-                    DB_PASSWORD=${DB_PASSWORD}
-                    ENVIRONMENT=dev
-                    DEBUG=False
-                    SECRET_KEY=supersecretkey123!
-                    EOF
-                    '''
+                    sh 'docker build -t $IMAGE_NAME:$TAG .'
                 }
             }
         }
 
-        stage('Build and Start') {
+        stage('Run Container') {
             steps {
                 script {
-                    sh """
-                    docker-compose build
-                    docker-compose up -d
-                    
-                    # Wait for DB to be ready
-                    timeout 120s bash -c '
-                        while ! docker-compose exec db mysqladmin ping -h localhost -u root -p${DB_ROOT_PASSWORD} --silent; do
-                            sleep 5
-                            echo "Waiting for DB..."
-                        done
-                    '
-                    """
+                    // stop old container if exists
+                    sh 'docker stop fintrack-api || true'
+                    sh 'docker rm fintrack-api || true'
+
+                    // run new container
+                    sh 'docker run -d -p 8000:8000 --name fintrack-api $IMAGE_NAME:$TAG'
                 }
             }
-        }
-
-        stage('Run Tests') {
-            steps {
-                script {
-                    sh '''
-                    # Run backend tests
-                    docker-compose exec app pytest tests/ -v
-                    
-                    # Or test API endpoints directly
-                    docker-compose exec app curl -X GET http://localhost:8000/api/health
-                    '''
-                }
-            }
-        }
-    }
-
-    post {
-        always {
-            sh 'docker-compose down -v --remove-orphans'
-            sh 'docker image prune -f'
         }
     }
 }
