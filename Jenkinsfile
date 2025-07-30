@@ -1,32 +1,39 @@
-// Jenkinsfile for fin-track-api CI (Build & Test with Docker-in-Docker approach)
 pipeline {
-    agent {
-        docker {
-            image 'docker:24.0-dind'  // Uses Docker-in-Docker with latest stable version
-            args '--privileged -v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
-
+    agent any
+    
     environment {
         DOCKER_IMAGE_NAME = 'fin-track-api'
-        COMPOSE_PROJECT_NAME = 'fintrack_ci_${BUILD_NUMBER}'  // Isolates containers per build
+        COMPOSE_PROJECT_NAME = "fintrack_${BUILD_NUMBER}"
     }
 
     stages {
+        stage('Setup Environment') {
+            steps {
+                script {
+                    // Verify/install Docker
+                    sh '''
+                        if ! command -v docker &> /dev/null; then
+                            echo "Installing Docker..."
+                            curl -fsSL https://get.docker.com | sh
+                            sudo usermod -aG docker jenkins
+                            sudo systemctl restart docker
+                        fi
+                        
+                        # Verify Docker access
+                        docker --version
+                    '''
+                }
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 script {
-                    echo "Building Docker image: ${DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER}"
-                    
-                    // Install docker-compose v2 (compose-plugin) if needed
-                    sh '''
-                        apk add --no-cache docker-cli-compose
-                        docker compose version
-                    '''
-                    
-                    // Build with BuildKit for better performance
-                    sh "DOCKER_BUILDKIT=1 docker build -t ${DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER} ."
-                    sh "docker tag ${DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER} ${DOCKER_IMAGE_NAME}:latest"
+                    echo "Building Docker image: ${DOCKER_IMAGE_NAME}:${BUILD_NUMBER}"
+                    sh """
+                        docker build -t ${DOCKER_IMAGE_NAME}:${BUILD_NUMBER} .
+                        docker tag ${DOCKER_IMAGE_NAME}:${BUILD_NUMBER} ${DOCKER_IMAGE_NAME}:latest
+                    """
                 }
             }
         }
@@ -35,17 +42,15 @@ pipeline {
             steps {
                 script {
                     echo "Starting test environment..."
-                    sh '''
+                    sh """
                         docker compose -f docker-compose.test.yml up -d --build
                         
-                        # Wait for DB to be ready (better than sleep)
-                        timeout 60s bash -c 'until docker compose -f docker-compose.test.yml exec db mysqladmin ping -h localhost -u root -prootpass; do sleep 2; done'
-                    '''
-                    
-                    echo "Running tests..."
-                    sh '''
+                        # Wait for DB to be ready
+                        timeout 120s bash -c 'until docker compose -f docker-compose.test.yml exec db mysqladmin ping -h localhost -u root -prootpass; do sleep 5; done'
+                        
+                        # Run tests
                         docker compose -f docker-compose.test.yml exec app_test pytest tests/ -v
-                    '''
+                    """
                 }
             }
             post {
@@ -59,8 +64,10 @@ pipeline {
 
     post {
         always {
-            // Clean up any dangling images
+            echo "Pipeline completed - cleaning up"
             sh 'docker image prune -f'
+            // Optional: Archive test results if using JUnit reports
+            // junit '**/test-reports/*.xml' 
         }
     }
 }
